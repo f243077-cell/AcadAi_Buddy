@@ -1,0 +1,47 @@
+# Flutter
+build/
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+
+# Firebase
+firebase_options.dart
+android/app/google-services.json
+ios/Runner/GoogleService-Info.plist
+
+# Environment Variables & Secrets
+.env
+.env.*
+!.env.example
+
+# Docker
+volumes/
+data/
+postgres-data/
+mysql-data/
+docker-compose.override.yml
+
+# Android/Gradle
+android/.gradle/
+android/app/build/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/build/
+
+# IDE & OS
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs & Misc
+*.log
+.DS_Store
+Thumbs.db
+
+# Keystore / Signing
+*.keystore
+*.jks
+*.pem
