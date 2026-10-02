@@ -90,8 +90,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         path: '/chat/:chatId',
         name: 'chat',
         parentNavigatorKey: rootKey,
-        builder: (context, state) =>
-            ChatPage(chatId: state.pathParameters['chatId']!),
+        builder: (context, state) => ChatPage(
+          chatId: state.pathParameters['chatId']!,
+          subject: state.uri.queryParameters['subject'],
+          prefill: state.extra is String ? state.extra as String : null,
+        ),
       ),
       if (kDebugMode)
         GoRoute(

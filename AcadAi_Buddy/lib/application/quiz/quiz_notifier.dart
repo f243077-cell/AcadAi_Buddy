@@ -1,27 +1,27 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:study_ai_app/application/quiz/quiz_state.dart';
-import 'package:study_ai_app/infrastructure/study/gemini_service.dart';
+import 'package:study_ai_app/domain/core/failures.dart';
+import 'package:study_ai_app/domain/study/repositories/i_ai_repository.dart';
+import 'package:study_ai_app/infrastructure/study/ai_service.dart';
 
 class QuizNotifier extends StateNotifier<QuizState> {
-  final GeminiService _geminiService;
+  final IAiRepository _ai;
 
-  QuizNotifier(this._geminiService) : super(const QuizInitial());
+  QuizNotifier(this._ai) : super(const QuizInitial());
 
   Future<void> generateQuiz(String subject, int numQuestions) async {
     state = const QuizLoading();
-    try {
-      final questions =
-          await _geminiService.generateQuiz(subject, numQuestions);
-      state = QuizLoaded(
+    final result = await _ai.generateQuiz(subject: subject, count: numQuestions);
+    result.fold(
+      (f) => state = QuizFailure(f.message),
+      (questions) => state = QuizLoaded(
         questions: questions,
         currentIndex: 0,
         score: 0,
         answered: false,
         selectedAnswer: null,
-      );
-    } catch (e) {
-      state = QuizFailure(e.toString());
-    }
+      ),
+    );
   }
 
   void answerQuestion(String answer) {
@@ -66,5 +66,5 @@ class QuizNotifier extends StateNotifier<QuizState> {
 
 final quizNotifierProvider =
     StateNotifierProvider<QuizNotifier, QuizState>((ref) {
-  return QuizNotifier(ref.watch(geminiServiceProvider));
+  return QuizNotifier(ref.watch(aiRepositoryProvider));
 });

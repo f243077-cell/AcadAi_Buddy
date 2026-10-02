@@ -1,28 +1,61 @@
+import 'package:study_ai_app/domain/core/failures.dart';
 import 'package:study_ai_app/domain/study/entities/chat_message.dart';
+import 'package:study_ai_app/domain/study/entities/chat_session.dart';
 
-abstract class ChatState {
-  const ChatState();
-}
+enum ChatStatus { loading, idle, sending }
 
-class ChatInitial extends ChatState {
-  const ChatInitial();
-}
+/// One state for the whole conversation. [messages] are never dropped, even
+/// after a failure.
+class ChatState {
+  const ChatState({
+    this.messages = const [],
+    this.status = ChatStatus.loading,
+    this.subject = 'General',
+    this.session,
+    this.failedMessageId,
+    this.error,
+  });
 
-class ChatLoading extends ChatState {
-  const ChatLoading();
-}
-
-class ChatLoaded extends ChatState {
   final List<ChatMessage> messages;
-  const ChatLoaded(this.messages);
-}
+  final ChatStatus status;
+  final String subject;
 
-class ChatSending extends ChatState {
-  final List<ChatMessage> messages;
-  const ChatSending(this.messages);
-}
+  /// Chat metadata; null until the first message creates the chat.
+  final ChatSession? session;
 
-class ChatFailureState extends ChatState {
-  final String error;
-  const ChatFailureState(this.error);
+  /// User message whose reply failed; the UI shows "Not sent. Retry".
+  final String? failedMessageId;
+
+  /// One-shot error: the UI shows a snackbar, then calls `clearError()`.
+  final AiFailure? error;
+
+  bool get isSending => status == ChatStatus.sending;
+  String get title => session?.title ?? 'New chat';
+
+  /// Whether the last message is a tutor reply that can be regenerated.
+  bool get canRegenerate =>
+      !isSending &&
+      messages.isNotEmpty &&
+      messages.last.role == MessageRole.model;
+
+  ChatState copyWith({
+    List<ChatMessage>? messages,
+    ChatStatus? status,
+    String? subject,
+    ChatSession? session,
+    String? failedMessageId,
+    bool clearFailed = false,
+    AiFailure? error,
+    bool clearError = false,
+  }) {
+    return ChatState(
+      messages: messages ?? this.messages,
+      status: status ?? this.status,
+      subject: subject ?? this.subject,
+      session: session ?? this.session,
+      failedMessageId:
+          clearFailed ? null : (failedMessageId ?? this.failedMessageId),
+      error: clearError ? null : (error ?? this.error),
+    );
+  }
 }

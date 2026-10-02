@@ -1,3 +1,5 @@
+import 'dart:typed_data';
+
 /// Represents the role of a participant in a chat conversation.
 enum MessageRole {
   /// A message sent by the human user.
@@ -18,6 +20,8 @@ class ChatMessage {
     required this.timestamp,
     required this.chatId,
     this.imageUrl,
+    this.imageBytes,
+    this.hasImage = false,
   });
 
   /// Unique identifier for this message.
@@ -38,6 +42,12 @@ class ChatMessage {
   /// Optional URL of an image attached to this message.
   final String? imageUrl;
 
+  /// The picked image, kept in memory only (not uploaded).
+  final Uint8List? imageBytes;
+
+  /// Whether an image was attached when the message was sent.
+  final bool hasImage;
+
   /// Returns a copy of this message with the given fields replaced.
   ChatMessage copyWith({
     String? id,
@@ -47,6 +57,8 @@ class ChatMessage {
     String? chatId,
     String? imageUrl,
     bool clearImageUrl = false,
+    Uint8List? imageBytes,
+    bool? hasImage,
   }) {
     return ChatMessage(
       id: id ?? this.id,
@@ -55,6 +67,8 @@ class ChatMessage {
       timestamp: timestamp ?? this.timestamp,
       chatId: chatId ?? this.chatId,
       imageUrl: clearImageUrl ? null : (imageUrl ?? this.imageUrl),
+      imageBytes: imageBytes ?? this.imageBytes,
+      hasImage: hasImage ?? this.hasImage,
     );
   }
 
@@ -68,11 +82,13 @@ class ChatMessage {
           role == other.role &&
           timestamp == other.timestamp &&
           chatId == other.chatId &&
-          imageUrl == other.imageUrl;
+          imageUrl == other.imageUrl &&
+          hasImage == other.hasImage &&
+          identical(imageBytes, other.imageBytes);
 
   @override
   int get hashCode =>
-      Object.hash(id, content, role, timestamp, chatId, imageUrl);
+      Object.hash(id, content, role, timestamp, chatId, imageUrl, hasImage);
 
   @override
   String toString() => 'ChatMessage('

@@ -5,28 +5,37 @@ class QuizQuestion {
   const QuizQuestion({
     required this.question,
     required this.options,
-    required this.answer,
+    required this.correctIndex,
+    this.explanation = '',
   });
 
   /// The question text presented to the student.
   final String question;
 
-  /// The list of answer options (typically 4 choices, A–D).
+  /// The answer options without letter prefixes (the UI draws A–D badges).
   final List<String> options;
 
-  /// The correct answer string (must be one of the [options]).
-  final String answer;
+  /// Index into [options] of the correct answer.
+  final int correctIndex;
+
+  /// Why the correct answer is right (from the model; may be empty).
+  final String explanation;
+
+  /// The correct answer text. Kept so older callers still compile.
+  String get answer => options[correctIndex];
 
   /// Returns a copy of this question with the given fields replaced.
   QuizQuestion copyWith({
     String? question,
     List<String>? options,
-    String? answer,
+    int? correctIndex,
+    String? explanation,
   }) {
     return QuizQuestion(
       question: question ?? this.question,
       options: options ?? List<String>.from(this.options),
-      answer: answer ?? this.answer,
+      correctIndex: correctIndex ?? this.correctIndex,
+      explanation: explanation ?? this.explanation,
     );
   }
 
@@ -36,7 +45,8 @@ class QuizQuestion {
       other is QuizQuestion &&
           runtimeType == other.runtimeType &&
           question == other.question &&
-          answer == other.answer &&
+          correctIndex == other.correctIndex &&
+          explanation == other.explanation &&
           _listsEqual(options, other.options);
 
   bool _listsEqual(List<String> a, List<String> b) {
@@ -48,12 +58,13 @@ class QuizQuestion {
   }
 
   @override
-  int get hashCode => Object.hash(question, answer, Object.hashAll(options));
+  int get hashCode =>
+      Object.hash(question, correctIndex, explanation, Object.hashAll(options));
 
   @override
   String toString() => 'QuizQuestion('
       'question: ${question.length > 40 ? '${question.substring(0, 40)}…' : question}, '
       'options: $options, '
-      'answer: $answer'
+      'correctIndex: $correctIndex'
       ')';
 }

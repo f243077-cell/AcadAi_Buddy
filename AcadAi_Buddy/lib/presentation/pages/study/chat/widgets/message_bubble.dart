@@ -1,337 +1,272 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:intl/intl.dart';
 
 import '../../../../../domain/study/entities/chat_message.dart';
 import '../../../../core/theme.dart';
+import '../../../../core/widgets/app_snack.dart';
+import '../../../../core/widgets/markdown_view.dart';
+import '../../../../core/widgets/typing_dots.dart';
 
-class MessageBubble extends StatelessWidget {
-  final ChatMessage message;
-
-  const MessageBubble({super.key, required this.message});
-
-  bool get _isUser => message.role == MessageRole.user;
+/// 28 dp tutor avatar shown beside AI rows.
+class TutorAvatar extends StatelessWidget {
+  const TutorAvatar({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 16),
+    return ExcludeSemantics(
+      child: Container(
+        width: 28,
+        height: 28,
+        decoration: const BoxDecoration(
+          color: AppColors.accent,
+          shape: BoxShape.circle,
+        ),
+        alignment: Alignment.center,
+        child: const Icon(Icons.school_rounded,
+            size: 16, color: AppColors.onAccent),
+      ),
+    );
+  }
+}
+
+/// Tutor answer: flat, full width, Markdown with LaTeX and code blocks,
+/// followed by Copy and (for the last answer) Regenerate.
+class AiMessage extends StatelessWidget {
+  const AiMessage({
+    super.key,
+    required this.message,
+    this.onRegenerate,
+  });
+
+  final ChatMessage message;
+  final VoidCallback? onRegenerate;
+
+  Future<void> _copy(BuildContext context) async {
+    await Clipboard.setData(ClipboardData(text: message.content));
+    if (context.mounted) {
+      AppSnack.show(context, 'Answer copied', tone: SnackTone.success);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      container: true,
+      label: 'Tutor',
       child: Row(
-        mainAxisAlignment:
-            _isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // AI avatar — left side
-          if (!_isUser) ...[
-            Container(
-              width: 28,
-              height: 28,
-              margin: const EdgeInsets.only(right: 8, bottom: 18),
-              decoration: BoxDecoration(
-                color: AppColors.accent.withAlpha((0.12 * 255).round()),
-                shape: BoxShape.circle,
-                border: const Border(
-                  top: BorderSide(color: AppColors.accent, width: 1),
-                ),
-              ),
-              child: const Center(
-                child: Text('🤖', style: TextStyle(fontSize: 14)),
-              ),
-            ),
-          ],
-
-          // Bubble
-          Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth: MediaQuery.of(context).size.width * 0.72,
-              ),
-              child: GestureDetector(
-                onLongPress: () => _copyToClipboard(context),
-                child: Column(
-                  crossAxisAlignment: _isUser
-                      ? CrossAxisAlignment.end
-                      : CrossAxisAlignment.start,
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: TutorAvatar(),
+          ),
+          const SizedBox(width: AppSpacing.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectionArea(child: MarkdownView(data: message.content)),
+                const SizedBox(height: AppSpacing.xs),
+                Row(
                   children: [
-                    // Image (if any)
-                    if (message.imageUrl != null &&
-                        message.imageUrl!.isNotEmpty)
-                      _ImageAttachment(
-                        imageUrl: message.imageUrl!,
-                        isUser: _isUser,
-                      ),
-
-                    // Bubble body
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: _isUser
-                            ? AppColors.accent
-                            : const Color(0xFF1A2B3C),
-                        borderRadius: _isUser
-                            ? const BorderRadius.only(
-                                topLeft: Radius.circular(16),
-                                topRight: Radius.circular(16),
-                                bottomLeft: Radius.circular(16),
-                                bottomRight: Radius.circular(4),
-                              )
-                            : const BorderRadius.only(
-                                topLeft: Radius.circular(4),
-                                topRight: Radius.circular(16),
-                                bottomLeft: Radius.circular(16),
-                                bottomRight: Radius.circular(16),
-                              ),
-                        border: _isUser
-                            ? null
-                            : Border.all(color: AppColors.divider),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withAlpha((0.12 * 255).round()),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: _isUser
-                          ? Text(
-                              message.content,
-                              style: const TextStyle(
-                                color: AppColors.background,
-                                fontSize: 14,
-                                fontFamily: 'Georgia',
-                                height: 1.5,
-                              ),
-                            )
-                          : _MarkdownContent(content: message.content),
+                    _ActionButton(
+                      icon: Icons.copy_rounded,
+                      label: 'Copy',
+                      onPressed: () => _copy(context),
                     ),
-
-                    // Timestamp
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4, left: 2, right: 2),
-                      child: Text(
-                        _formatTimestamp(message.timestamp),
-                        style: const TextStyle(
-                          color: AppColors.textSecondary,
-                          fontSize: 10,
-                          fontFamily: 'Georgia',
-                        ),
+                    if (onRegenerate != null)
+                      _ActionButton(
+                        icon: Icons.refresh_rounded,
+                        label: 'Regenerate',
+                        onPressed: onRegenerate!,
                       ),
-                    ),
                   ],
                 ),
-              ),
+              ],
             ),
           ),
-
-          // Spacer for user messages to not sit at the very edge
-          if (_isUser) const SizedBox(width: 4),
         ],
       ),
     );
   }
-
-  void _copyToClipboard(BuildContext context) {
-    Clipboard.setData(ClipboardData(text: message.content));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Row(
-          children: [
-            Icon(Icons.copy_rounded, color: AppColors.accent, size: 16),
-            SizedBox(width: 8),
-            Text(
-              'Copied to clipboard',
-              style: TextStyle(
-                  color: AppColors.textPrimary, fontFamily: 'Georgia'),
-            ),
-          ],
-        ),
-        backgroundColor: AppColors.surfaceAlt,
-        duration: const Duration(seconds: 2),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-      ),
-    );
-  }
-
-  String _formatTimestamp(DateTime timestamp) {
-    final now = DateTime.now();
-    final diff = now.difference(timestamp);
-
-    if (diff.inMinutes < 1) return 'just now';
-    if (diff.inHours < 1) return '${diff.inMinutes}m ago';
-    if (diff.inDays < 1) return DateFormat('h:mm a').format(timestamp);
-    return DateFormat('MMM d, h:mm a').format(timestamp);
-  }
 }
 
-// ---------------------------------------------------------------------------
-// Markdown content for AI messages
-// ---------------------------------------------------------------------------
+class _ActionButton extends StatelessWidget {
+  const _ActionButton({
+    required this.icon,
+    required this.label,
+    required this.onPressed,
+  });
 
-class _MarkdownContent extends StatelessWidget {
-  final String content;
-
-  const _MarkdownContent({required this.content});
+  final IconData icon;
+  final String label;
+  final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    return MarkdownBody(
-      data: content,
-      selectable: false,
-      styleSheet: MarkdownStyleSheet(
-        p: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 14,
-          fontFamily: 'Georgia',
-          height: 1.55,
-        ),
-        strong: const TextStyle(
-          color: AppColors.textPrimary,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Georgia',
-        ),
-        em: const TextStyle(
-          color: AppColors.textPrimary,
-          fontStyle: FontStyle.italic,
-          fontFamily: 'Georgia',
-        ),
-        code: const TextStyle(
-          color: AppColors.accent,
-          fontFamily: 'monospace',
-          fontSize: 13,
-          backgroundColor: Color(0xFF0D1B2A),
-        ),
-        codeblockDecoration: BoxDecoration(
-          color: const Color(0xFF0D1B2A),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: AppColors.divider),
-        ),
-        codeblockPadding: const EdgeInsets.all(12),
-        blockquote: const TextStyle(
-          color: AppColors.textSecondary,
-          fontStyle: FontStyle.italic,
-          fontFamily: 'Georgia',
-        ),
-        blockquoteDecoration: BoxDecoration(
-          border: Border(
-            left: BorderSide(
-              color: AppColors.accent.withAlpha((0.5 * 255).round()),
-              width: 3,
-            ),
-          ),
-        ),
-        blockquotePadding: const EdgeInsets.only(left: 12, top: 4, bottom: 4),
-        h1: const TextStyle(
-          color: AppColors.accent,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Georgia',
-        ),
-        h2: const TextStyle(
-          color: AppColors.accent,
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Georgia',
-        ),
-        h3: const TextStyle(
-          color: AppColors.textPrimary,
-          fontSize: 15,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Georgia',
-        ),
-        listBullet: const TextStyle(
-          color: AppColors.accent,
-          fontFamily: 'Georgia',
-        ),
-        horizontalRuleDecoration: const BoxDecoration(
-          border: Border(top: BorderSide(color: AppColors.divider, width: 1)),
-        ),
-        tableHead: const TextStyle(
-          color: AppColors.accent,
-          fontWeight: FontWeight.bold,
-          fontFamily: 'Georgia',
-          fontSize: 13,
-        ),
-        tableBody: const TextStyle(
-          color: AppColors.textPrimary,
-          fontFamily: 'Georgia',
-          fontSize: 13,
-        ),
-        tableBorder: TableBorder.all(color: AppColors.divider),
-        tableHeadAlign: TextAlign.center,
+    return TextButton.icon(
+      onPressed: onPressed,
+      style: TextButton.styleFrom(
+        foregroundColor: AppColors.textSecondary,
+        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.sm),
       ),
+      icon: Icon(icon, size: 16),
+      label: Text(label),
     );
   }
 }
 
-// ---------------------------------------------------------------------------
-// Image attachment
-// ---------------------------------------------------------------------------
+/// User message: right-aligned bubble, at most 85% of the available width.
+/// A failed message gets an error outline and "Not sent. Retry".
+class UserBubble extends StatelessWidget {
+  const UserBubble({
+    super.key,
+    required this.message,
+    this.failed = false,
+    this.onRetry,
+  });
 
-class _ImageAttachment extends StatelessWidget {
-  final String imageUrl;
-  final bool isUser;
+  final ChatMessage message;
+  final bool failed;
+  final VoidCallback? onRetry;
 
-  const _ImageAttachment({required this.imageUrl, required this.isUser});
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxWidth = constraints.maxWidth * 0.85;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Semantics(
+              container: true,
+              label: failed ? 'You, not sent' : 'You',
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.lg, vertical: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceAlt,
+                    borderRadius: const BorderRadius.only(
+                      topLeft: Radius.circular(AppRadius.card),
+                      topRight: Radius.circular(AppRadius.card),
+                      bottomLeft: Radius.circular(AppRadius.card),
+                      bottomRight: Radius.circular(4),
+                    ),
+                    border: Border.all(
+                      color: failed ? AppColors.error : AppColors.border,
+                      width: failed ? 1.5 : 1,
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (message.imageBytes != null) ...[
+                        ClipRRect(
+                          borderRadius: AppRadius.inputAll,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(maxHeight: 240),
+                            child: Image.memory(
+                              message.imageBytes!,
+                              fit: BoxFit.cover,
+                              semanticLabel: 'Attached image',
+                            ),
+                          ),
+                        ),
+                        if (message.content.isNotEmpty)
+                          const SizedBox(height: AppSpacing.sm),
+                      ] else if (message.hasImage) ...[
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.image_outlined,
+                                size: 16, color: AppColors.textSecondary),
+                            const SizedBox(width: AppSpacing.xs),
+                            Text('Image attached',
+                                style: AppText.caption.copyWith(
+                                    color: AppColors.textSecondary)),
+                          ],
+                        ),
+                        if (message.content.isNotEmpty)
+                          const SizedBox(height: AppSpacing.xs),
+                      ],
+                      if (message.content.isNotEmpty)
+                        SelectableText(message.content, style: AppText.bodyL),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            if (failed)
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.error_outline_rounded,
+                      size: 16, color: AppColors.error),
+                  const SizedBox(width: AppSpacing.xs),
+                  Text('Not sent.',
+                      style: AppText.caption.copyWith(color: AppColors.error)),
+                  TextButton(onPressed: onRetry, child: const Text('Retry')),
+                ],
+              ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+/// Flat AI row with animated dots while the tutor is replying.
+class TypingRow extends StatelessWidget {
+  const TypingRow({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Row(
+      children: [
+        TutorAvatar(),
+        SizedBox(width: AppSpacing.md),
+        TypingDots(),
+      ],
+    );
+  }
+}
+
+/// "Today", "Yesterday" or a short date between message groups.
+class DateSeparator extends StatelessWidget {
+  const DateSeparator({super.key, required this.date});
+
+  final DateTime date;
+
+  static String labelFor(DateTime date, [DateTime? now]) {
+    final today = DateUtils.dateOnly(now ?? DateTime.now());
+    final day = DateUtils.dateOnly(date);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    if (day.year == today.year) return DateFormat('EEE, d MMM').format(day);
+    return DateFormat('d MMM y').format(day);
+  }
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(12),
-        child: Image.network(
-          imageUrl,
-          width: 220,
-          fit: BoxFit.cover,
-          loadingBuilder: (context, child, loadingProgress) {
-            if (loadingProgress == null) return child;
-            return Container(
-              width: 220,
-              height: 140,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: const Center(
-                child: CircularProgressIndicator(
-                  color: AppColors.accent,
-                  strokeWidth: 2,
-                ),
-              ),
-            );
-          },
-          errorBuilder: (context, error, stackTrace) {
-            return Container(
-              width: 220,
-              height: 100,
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.divider),
-              ),
-              child: const Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.broken_image_outlined,
-                      color: AppColors.textSecondary, size: 28),
-                  SizedBox(height: 6),
-                  Text(
-                    'Image unavailable',
-                    style: TextStyle(
-                      color: AppColors.textSecondary,
-                      fontSize: 12,
-                      fontFamily: 'Georgia',
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        ),
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+      child: Row(
+        children: [
+          const Expanded(child: Divider()),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+            child: Text(
+              labelFor(date),
+              style: AppText.caption.copyWith(color: AppColors.textMuted),
+            ),
+          ),
+          const Expanded(child: Divider()),
+        ],
       ),
     );
   }

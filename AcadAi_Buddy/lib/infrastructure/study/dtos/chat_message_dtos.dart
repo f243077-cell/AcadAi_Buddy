@@ -8,6 +8,7 @@ class ChatMessageDto {
   final DateTime timestamp;
   final String? imageUrl;
   final String chatId;
+  final bool hasImage;
 
   const ChatMessageDto({
     required this.id,
@@ -16,6 +17,7 @@ class ChatMessageDto {
     required this.timestamp,
     this.imageUrl,
     required this.chatId,
+    this.hasImage = false,
   });
 
   factory ChatMessageDto.fromDomain(ChatMessage message) {
@@ -26,6 +28,7 @@ class ChatMessageDto {
       timestamp: message.timestamp,
       imageUrl: message.imageUrl,
       chatId: message.chatId,
+      hasImage: message.hasImage || message.imageBytes != null,
     );
   }
 
@@ -37,6 +40,7 @@ class ChatMessageDto {
       timestamp: timestamp,
       imageUrl: imageUrl,
       chatId: chatId,
+      hasImage: hasImage,
     );
   }
 
@@ -48,6 +52,7 @@ class ChatMessageDto {
       'timestamp': Timestamp.fromDate(timestamp),
       'imageUrl': imageUrl,
       'chatId': chatId,
+      'hasImage': hasImage,
     };
   }
 
@@ -64,12 +69,13 @@ class ChatMessageDto {
     }
 
     return ChatMessageDto(
-      id: json['id'] as String,
-      content: json['content'] as String,
-      role: json['role'] as String,
+      id: (json['id'] ?? '').toString(),
+      content: (json['content'] ?? '').toString(),
+      role: (json['role'] ?? 'model').toString(),
       timestamp: parsedTimestamp,
       imageUrl: json['imageUrl'] as String?,
-      chatId: json['chatId'] as String,
+      chatId: (json['chatId'] ?? '').toString(),
+      hasImage: json['hasImage'] == true,
     );
   }
 }
