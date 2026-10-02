@@ -11,7 +11,9 @@ import '../presentation/pages/sign_in/sign_in_page.dart';
 import '../presentation/pages/sign_up/sign_up_page.dart';
 import '../presentation/pages/study/home/home_page.dart';
 import '../presentation/pages/study/chat/chat_page.dart';
-import '../presentation/pages/study/quiz/quiz_page.dart';
+import '../application/quiz/quiz_state.dart';
+import '../presentation/pages/study/quiz/quiz_play_page.dart';
+import '../presentation/pages/study/quiz/quiz_setup_page.dart';
 import '../presentation/pages/study/summarize/summarize_page.dart';
 import '../presentation/pages/study/tutor/tutor_page.dart';
 import 'auth_redirect.dart';
@@ -73,7 +75,20 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             GoRoute(
               path: '/quiz',
               name: 'quiz',
-              builder: (context, state) => const QuizPage(),
+              builder: (context, state) => const QuizSetupPage(),
+              routes: [
+                // In-progress quiz pushes over the shell (no bottom bar).
+                GoRoute(
+                  path: 'play',
+                  name: 'quiz-play',
+                  parentNavigatorKey: rootKey,
+                  builder: (context, state) => QuizPlayPage(
+                    config: state.extra is QuizConfig
+                        ? state.extra as QuizConfig
+                        : null,
+                  ),
+                ),
+              ],
             ),
           ]),
           StatefulShellBranch(routes: [

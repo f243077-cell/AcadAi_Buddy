@@ -1,3 +1,5 @@
+import 'package:study_ai_app/domain/core/failures.dart';
+
 abstract class SummarizeState {
   const SummarizeState();
 }
@@ -16,6 +18,9 @@ class SummarizeLoaded extends SummarizeState {
 }
 
 class SummarizeFailure extends SummarizeState {
-  final String error;
-  const SummarizeFailure(this.error);
+  final AiFailure failure;
+  const SummarizeFailure(this.failure);
+
+  /// Friendly text; never raw exception output.
+  String get error => failure.message;
 }
