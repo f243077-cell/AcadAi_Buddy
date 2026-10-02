@@ -1,9 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../application/auth/auth_notifier.dart';
 import '../application/auth/auth_state.dart';
+import '../presentation/pages/debug/widget_gallery_page.dart';
 import '../presentation/pages/splash/splash_page.dart';
 import '../presentation/pages/sign_in/sign_in_page.dart';
 import '../presentation/pages/sign_up/sign_up_page.dart';
@@ -84,6 +86,11 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'summarize',
         builder: (context, state) => const SummarizePage(),
       ),
+      if (kDebugMode)
+        GoRoute(
+          path: '/gallery',
+          builder: (context, state) => const WidgetGalleryPage(),
+        ),
     ],
   );
 });

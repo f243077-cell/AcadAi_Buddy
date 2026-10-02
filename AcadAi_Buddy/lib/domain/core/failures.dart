@@ -107,3 +107,26 @@ class StudyFailure extends Failure {
   @override
   int get hashCode => message.hashCode;
 }
+
+// ─── AiFailure ───────────────────────────────────────────────────────────────
+
+/// Typed failures from the AI service. Never show raw exception text to the
+/// user; use [AiFailureX.message] instead.
+enum AiFailure { offline, timeout, rateLimited, unauthorized, badResponse, unknown }
+
+extension AiFailureX on AiFailure {
+  String get message => switch (this) {
+        AiFailure.offline =>
+          "You're offline. Check your connection and try again.",
+        AiFailure.timeout => 'The tutor is taking too long. Please try again.',
+        AiFailure.rateLimited =>
+          'The free AI model is busy right now. Wait a few seconds and retry.',
+        AiFailure.unauthorized => "The AI service isn't configured correctly.",
+        AiFailure.badResponse =>
+          'That answer came back garbled. Please try again.',
+        AiFailure.unknown => 'Something went wrong. Please try again.',
+      };
+
+  /// Whether retrying the same request can reasonably succeed.
+  bool get isRetriable => this != AiFailure.unauthorized;
+}
