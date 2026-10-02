@@ -161,6 +161,55 @@ void main() {
     expect(parts[1]['image_url']['url'], startsWith('data:image/png;base64,'));
   });
 
+  test('sends a free-model fallback chain, capped at 3, vision chain for images',
+      () async {
+    final bodies = <Map<String, dynamic>>[];
+    final ai = AiService(
+      const AiConfig(
+        apiKey: 'k',
+        model: 'text-a',
+        visionModel: 'vision-a',
+        fallbackModels: ['text-b', 'text-a', 'text-c', 'text-d'],
+        visionFallbackModels: ['vision-b'],
+      ),
+      client: MockClient((req) async {
+        bodies.add(jsonDecode(req.body) as Map<String, dynamic>);
+        return _ok('ok');
+      }),
+    );
+    await ai.chat(subject: 's', history: [_msg(0, MessageRole.user)]);
+    expect(bodies.last['model'], 'text-a');
+    expect(bodies.last['models'], ['text-a', 'text-b', 'text-c']);
+
+    await ai.chat(
+        subject: 's',
+        history: [_msg(0, MessageRole.user)],
+        imageBytes: Uint8List.fromList([0xFF, 0xD8, 0xFF]));
+    expect(bodies.last['models'], ['vision-a', 'vision-b']);
+  });
+
+  test('no models list when there are no fallbacks', () async {
+    late Map<String, dynamic> body;
+    final ai = service((req) async {
+      body = jsonDecode(req.body) as Map<String, dynamic>;
+      return _ok('ok');
+    });
+    await ai.chat(subject: 's', history: [_msg(0, MessageRole.user)]);
+    expect(body.containsKey('models'), isFalse);
+  });
+
+  test('default chains use free models only', () {
+    const c = AiConfig(
+      apiKey: 'k',
+      fallbackModels: AiConfig.defaultFallbacks,
+      visionFallbackModels: AiConfig.defaultVisionFallbacks,
+    );
+    for (final m in [...c.chainFor(vision: false), ...c.chainFor(vision: true)]) {
+      expect(m.endsWith(':free') || m == 'openrouter/free', isTrue, reason: m);
+    }
+    expect(c.chainFor(vision: false).length, 3);
+  });
+
   test('detectImageMime', () {
     expect(detectImageMime(Uint8List.fromList([0xFF, 0xD8, 0xFF, 0])),
         'image/jpeg');

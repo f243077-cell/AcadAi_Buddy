@@ -1,0 +1,12 @@
+{
+  "name": "acadai-firestore-rules-tests",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npx -y firebase-tools emulators:exec --only firestore --project demo-acadai \"node --test rules.test.mjs\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^5.0.2",
+    "firebase": "^12.19.0"
+  }
+}

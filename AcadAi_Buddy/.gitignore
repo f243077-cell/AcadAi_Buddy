@@ -48,3 +48,6 @@ Thumbs.db
 # Android release signing (never commit)
 key.properties
 android/key.properties
+
+# Firebase emulator logs
+*-debug.log

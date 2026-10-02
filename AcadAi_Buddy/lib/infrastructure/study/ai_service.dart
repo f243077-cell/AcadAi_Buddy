@@ -105,15 +105,18 @@ class AiService implements IAiRepository {
   // ── Transport ─────────────────────────────────────────────────────────────
 
   Future<Either<_CallError, String>> _complete({
-    required String model,
+    required bool vision,
     required List<Map<String, dynamic>> messages,
     bool jsonMode = false,
   }) async {
     if (config.apiKey.isEmpty) {
       return left(const _CallError(AiFailure.unauthorized));
     }
+    final models = config.chainFor(vision: vision);
     final body = jsonEncode({
-      'model': model,
+      'model': models.first,
+      // OpenRouter falls back through this list when a model is busy.
+      if (models.length > 1) 'models': models,
       'messages': messages,
       if (jsonMode) 'response_format': {'type': 'json_object'},
     });
@@ -210,7 +213,7 @@ class AiService implements IAiRepository {
       });
     }
     final r = await _complete(
-      model: imageBytes != null ? config.visionModel : config.model,
+      vision: imageBytes != null,
       messages: messages,
     );
     return r.leftMap((e) => e.failure);
@@ -222,7 +225,7 @@ class AiService implements IAiRepository {
     required Uint8List bytes,
   }) async {
     final r = await _complete(
-      model: config.visionModel,
+      vision: true,
       messages: [
         {'role': 'system', 'content': _studyPrompt},
         {
@@ -276,11 +279,11 @@ class AiService implements IAiRepository {
       {'role': 'system', 'content': _studyPrompt},
       {'role': 'user', 'content': prompt},
     ];
-    var r = await _complete(
-        model: config.model, messages: messages, jsonMode: true);
+    var r =
+        await _complete(vision: false, messages: messages, jsonMode: true);
     // Some providers reject response_format; fall back to plain text.
     if (r.isLeft() && r.fold((e) => e.status == 400, (_) => false)) {
-      r = await _complete(model: config.model, messages: messages);
+      r = await _complete(vision: false, messages: messages);
     }
     return r.fold(
       (e) => left(e.failure),
@@ -362,7 +365,7 @@ class AiService implements IAiRepository {
     if (notes.isEmpty) return left(AiFailure.badResponse);
     final capped =
         notes.length > kMaxNoteLength ? notes.substring(0, kMaxNoteLength) : notes;
-    final r = await _complete(model: config.model, messages: [
+    final r = await _complete(vision: false, messages: [
       {'role': 'system', 'content': _studyPrompt},
       {'role': 'user', 'content': '$instruction\n\nNotes:\n$capped'},
     ]);
