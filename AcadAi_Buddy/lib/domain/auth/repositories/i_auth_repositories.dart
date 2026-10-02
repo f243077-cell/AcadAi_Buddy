@@ -22,8 +22,8 @@ abstract class IAuthRepository {
   /// Creates a new account with [email], [password], and [displayName].
   ///
   /// Returns [Right<AppUser>] on success, or a typed [Left<AuthFailure>].
-  /// Note: a successful sign-up returns [Left<AuthFailure.emailNotVerified>]
-  /// intentionally — the UI treats this as a success banner, not an error.
+  /// A failed profile write after the account exists is not a failure; it is
+  /// retried in the background.
   Future<Either<AuthFailure, AppUser>> signUp(
     String email,
     String password,
@@ -37,7 +37,12 @@ abstract class IAuthRepository {
 
   /// Returns the currently signed-in [AppUser], or `null` if unauthenticated.
   ///
-  /// Returns null for unverified users.
-  /// This is a synchronous snapshot — it does not stream auth-state changes.
+  /// This is a synchronous snapshot; use [authStateChanges] to follow it.
   AppUser? getSignedInUser();
+
+  /// Emits the signed-in user (or null) now and on every sign-in/out.
+  Stream<AppUser?> authStateChanges();
+
+  /// Sends a password-reset email to [email].
+  Future<Either<AuthFailure, Unit>> sendPasswordResetEmail(String email);
 }

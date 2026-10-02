@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:study_ai_app/domain/auth/entities/app_user.dart';
 import 'package:study_ai_app/domain/auth/repositories/i_auth_repositories.dart';
 import 'package:study_ai_app/domain/core/failures.dart';
@@ -33,14 +35,7 @@ class FirebaseAuthRepository implements IAuthRepository {
       if (user == null) return left(AuthFailure.serverError());
       return right(UserDto.fromFirebase(user).toDomain());
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
-        return left(AuthFailure.wrongPassword());
-      } else if (e.code == 'user-not-found') {
-        return left(AuthFailure.userNotFound());
-      } else if (e.code == 'invalid-email') {
-        return left(AuthFailure.invalidEmail());
-      }
-      return left(AuthFailure.serverError());
+      return left(AuthFailure.fromCode(e.code));
     } catch (_) {
       return left(AuthFailure.serverError());
     }
@@ -49,37 +44,49 @@ class FirebaseAuthRepository implements IAuthRepository {
   @override
   Future<Either<AuthFailure, AppUser>> signUp(
       String email, String password, String displayName) async {
+    final User user;
     try {
       final userCredential = await _firebaseAuth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      final user = userCredential.user;
-      if (user == null) return left(AuthFailure.serverError());
-
-      await user.updateDisplayName(displayName);
-      await user.reload();
-
-      final userDto = UserDto(
-        id: user.uid,
-        email: email,
-        displayName: displayName,
-      );
-
-      await _firestore.collection('users').doc(user.uid).set(userDto.toJson());
-
-      return right(userDto.toDomain());
+      if (userCredential.user == null) return left(AuthFailure.serverError());
+      user = userCredential.user!;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-        return left(AuthFailure.emailAlreadyInUse());
-      } else if (e.code == 'invalid-email') {
-        return left(AuthFailure.invalidEmail());
-      } else if (e.code == 'weak-password') {
-        return left(AuthFailure.weakPassword());
-      }
-      return left(AuthFailure.serverError());
+      return left(AuthFailure.fromCode(e.code));
     } catch (_) {
       return left(AuthFailure.serverError());
+    }
+
+    // The account exists from here on: nothing below may fail the sign-up.
+    try {
+      await user.updateDisplayName(displayName);
+    } catch (_) {
+      // Display name is also stored in the profile document below.
+    }
+
+    final userDto = UserDto(
+      id: user.uid,
+      email: email,
+      displayName: displayName,
+    );
+    unawaited(_writeProfile(userDto));
+
+    return right(userDto.toDomain());
+  }
+
+  /// Writes the profile document, retrying a few times in the background.
+  Future<void> _writeProfile(UserDto dto, [int attempt = 0]) async {
+    try {
+      await _firestore
+          .collection('users')
+          .doc(dto.id)
+          .set(dto.toJson(), SetOptions(merge: true))
+          .timeout(const Duration(seconds: 15));
+    } catch (_) {
+      if (attempt >= 3) return;
+      await Future<void>.delayed(Duration(seconds: 5 * (attempt + 1)));
+      await _writeProfile(dto, attempt + 1);
     }
   }
 
@@ -93,5 +100,22 @@ class FirebaseAuthRepository implements IAuthRepository {
     final user = _firebaseAuth.currentUser;
     if (user == null) return null;
     return UserDto.fromFirebase(user).toDomain();
+  }
+
+  @override
+  Stream<AppUser?> authStateChanges() => _firebaseAuth
+      .authStateChanges()
+      .map((u) => u == null ? null : UserDto.fromFirebase(u).toDomain());
+
+  @override
+  Future<Either<AuthFailure, Unit>> sendPasswordResetEmail(String email) async {
+    try {
+      await _firebaseAuth.sendPasswordResetEmail(email: email);
+      return right(unit);
+    } on FirebaseAuthException catch (e) {
+      return left(AuthFailure.fromCode(e.code));
+    } catch (_) {
+      return left(AuthFailure.serverError());
+    }
   }
 }
