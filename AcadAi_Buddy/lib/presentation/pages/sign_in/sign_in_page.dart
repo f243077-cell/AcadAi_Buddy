@@ -146,8 +146,9 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                       onPressed: _submit,
                     ),
                     const SizedBox(height: AppSpacing.xxl),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text('New here?',
                             style: AppText.bodyM

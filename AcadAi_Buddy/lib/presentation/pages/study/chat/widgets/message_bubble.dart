@@ -68,7 +68,7 @@ class AiMessage extends StatelessWidget {
               children: [
                 SelectionArea(child: MarkdownView(data: message.content)),
                 const SizedBox(height: AppSpacing.xs),
-                Row(
+                Wrap(
                   children: [
                     _ActionButton(
                       icon: Icons.copy_rounded,

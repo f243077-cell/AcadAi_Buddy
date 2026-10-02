@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:study_ai_app/application/auth/auth_notifier.dart';
 import 'package:study_ai_app/application/quiz/quiz_state.dart';
+import 'package:study_ai_app/domain/core/failures.dart';
 import 'package:study_ai_app/domain/study/entities/quiz_message.dart';
 import 'package:study_ai_app/domain/study/entities/quiz_result.dart';
 import 'package:study_ai_app/domain/study/repositories/i_ai_repository.dart';
@@ -43,7 +44,9 @@ class QuizNotifier extends StateNotifier<QuizState> {
     if (!mounted || id != _requestId) return; // cancelled or superseded
     state = result.fold(
       QuizFailure.new,
-      (questions) => _begin(questions),
+      (questions) => questions.isEmpty
+          ? const QuizFailure(AiFailure.badResponse)
+          : _begin(questions),
     );
   }
 

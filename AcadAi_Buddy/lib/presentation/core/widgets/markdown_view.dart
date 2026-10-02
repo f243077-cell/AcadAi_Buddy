@@ -118,10 +118,12 @@ class _MathBuilder extends MarkdownElementBuilder {
         style: AppText.code,
       ),
     );
-    if (!display) return math;
+    // Long formulas scroll sideways instead of overflowing the line.
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
-      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      padding: display
+          ? const EdgeInsets.symmetric(vertical: AppSpacing.sm)
+          : EdgeInsets.zero,
       child: math,
     );
   }

@@ -157,6 +157,23 @@ class ChatNotifier extends StateNotifier<ChatState> {
     }
   }
 
+  DateTime? _lastStamp;
+
+  /// Now, but always later than every message so far, so order is stable
+  /// even when two messages land in the same millisecond.
+  DateTime _nextTimestamp({DateTime? after}) {
+    var t = DateTime.now();
+    final floor = [
+      _lastStamp,
+      after,
+      if (mounted && state.messages.isNotEmpty) state.messages.last.timestamp,
+    ].whereType<DateTime>();
+    for (final f in floor) {
+      if (!t.isAfter(f)) t = f.add(const Duration(milliseconds: 1));
+    }
+    return _lastStamp = t;
+  }
+
   // ── Actions ───────────────────────────────────────────────────────────────
 
   /// Sends [text] (and optionally an image). Ignored while a reply is being
@@ -170,7 +187,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
       id: _uuid.v4(),
       content: content,
       role: MessageRole.user,
-      timestamp: DateTime.now(),
+      timestamp: _nextTimestamp(),
       chatId: chatId,
       imageBytes: image,
       hasImage: image != null,
@@ -207,14 +224,11 @@ class ChatNotifier extends StateNotifier<ChatState> {
         );
       },
       (text) {
-        final now = DateTime.now();
         final reply = ChatMessage(
           id: _uuid.v4(),
           content: text,
           role: MessageRole.model,
-          timestamp: now.isAfter(userMsg.timestamp)
-              ? now
-              : userMsg.timestamp.add(const Duration(milliseconds: 1)),
+          timestamp: _nextTimestamp(after: userMsg.timestamp),
           chatId: chatId,
         );
         // Saved to this chat even if the screen has closed meanwhile.

@@ -191,8 +191,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                       onPressed: _submit,
                     ),
                     const SizedBox(height: AppSpacing.lg),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                    Wrap(
+                      alignment: WrapAlignment.center,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
                         Text('Already have an account?',
                             style: AppText.bodyM
