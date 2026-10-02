@@ -18,3 +18,4 @@ class AppWidget extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
     );
   }
+}
