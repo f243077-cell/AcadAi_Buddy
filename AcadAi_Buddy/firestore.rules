@@ -1,0 +1,59 @@
+rules_version = '2';
+
+// AcadAI Buddy Firestore rules. NOT deployed automatically.
+// Test in the emulator first:  firebase emulators:start --only firestore
+// Deploy (after review):       firebase deploy --only firestore:rules
+//
+// Data model:
+//   users/{uid}                         profile
+//   users/{uid}/quizResults/{id}        finished quizzes
+//   chats/{chatId}                      {ownerId, subject, title, lastMessage, createdAt, updatedAt}
+//   chats/{chatId}/messages/{id}        messages
+service cloud.firestore {
+  match /databases/{db}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function chatPath(chatId) {
+      return /databases/$(db)/documents/chats/$(chatId);
+    }
+
+    // The chat exists and belongs to the caller, before this write.
+    function ownsChat(chatId) {
+      return exists(chatPath(chatId))
+        && get(chatPath(chatId)).data.ownerId == request.auth.uid;
+    }
+
+    // ...or after it (the first message is written in the same batch that
+    // creates the chat document).
+    function ownsChatAfter(chatId) {
+      return existsAfter(chatPath(chatId))
+        && getAfter(chatPath(chatId)).data.ownerId == request.auth.uid;
+    }
+
+    match /users/{uid}/{document=**} {
+      allow read, write: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /chats/{chatId} {
+      // resource == null: a new chat screen listens before the chat exists.
+      allow get: if signedIn()
+        && (resource == null || resource.data.ownerId == request.auth.uid);
+      // History query must filter on ownerId == the caller's uid.
+      allow list: if signedIn() && resource.data.ownerId == request.auth.uid;
+      allow create: if signedIn()
+        && request.resource.data.ownerId == request.auth.uid;
+      allow update: if signedIn()
+        && resource.data.ownerId == request.auth.uid
+        && request.resource.data.ownerId == request.auth.uid;
+      allow delete: if signedIn() && resource.data.ownerId == request.auth.uid;
+
+      match /messages/{messageId} {
+        allow read: if signedIn() && ownsChat(chatId);
+        allow write: if signedIn() && (ownsChat(chatId) || ownsChatAfter(chatId));
+      }
+    }
+  }
+}

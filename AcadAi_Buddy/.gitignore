@@ -45,3 +45,6 @@ Thumbs.db
 *.keystore
 *.jks
 *.pem
+# Android release signing (never commit)
+key.properties
+android/key.properties
