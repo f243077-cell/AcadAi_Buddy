@@ -13,11 +13,11 @@ import '../../../core/subject_icons.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/app_button.dart';
 import '../../../core/widgets/app_card.dart';
+import '../../../core/widgets/avatar.dart';
 import '../../../core/widgets/states.dart';
 import '../../../core/widgets/subject_sheet.dart';
 import '../chat/start_chat.dart';
 import '../tutor/tutor_page.dart';
-import 'widgets/profile_sheet.dart';
 
 String greetingFor(DateTime now) {
   final h = now.hour;
@@ -68,8 +68,8 @@ class HomePage extends ConsumerWidget {
                 ),
                 if (user != null)
                   IconButton(
-                    tooltip: 'Profile and sign out',
-                    onPressed: () => showProfileSheet(context, user),
+                    tooltip: 'Profile',
+                    onPressed: () => context.push('/profile'),
                     icon: Avatar(user: user),
                   ),
               ],

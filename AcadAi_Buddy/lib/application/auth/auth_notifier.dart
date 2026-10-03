@@ -57,6 +57,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<Either<AuthFailure, Unit>> sendPasswordReset(String email) =>
       _authRepository.sendPasswordResetEmail(email);
 
+  /// Renames the signed-in user. Returns the failure, or null on success.
+  Future<AuthFailure?> updateDisplayName(String name) async {
+    final result = await _authRepository.updateDisplayName(name.trim());
+    return result.fold((f) => f, (user) {
+      if (mounted) state = AuthAuthenticated(user);
+      return null;
+    });
+  }
+
   /// Clears a shown failure (called when the user edits the form).
   void clearError() {
     if (state is AuthFailureState) state = const AuthUnauthenticated();

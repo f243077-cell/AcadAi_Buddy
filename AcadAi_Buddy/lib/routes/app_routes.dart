@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 
 import '../application/auth/auth_notifier.dart';
 import '../presentation/pages/debug/widget_gallery_page.dart';
+import '../presentation/pages/profile/profile_page.dart';
 import '../presentation/pages/shell/app_shell.dart';
 import '../presentation/pages/splash/splash_page.dart';
 import '../presentation/pages/sign_in/sign_in_page.dart';
@@ -101,6 +102,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         ],
       ),
       // Pushed over the shell (no bottom bar).
+      GoRoute(
+        path: '/profile',
+        name: 'profile',
+        parentNavigatorKey: rootKey,
+        builder: (context, state) => const ProfilePage(),
+      ),
       GoRoute(
         path: '/chat/:chatId',
         name: 'chat',

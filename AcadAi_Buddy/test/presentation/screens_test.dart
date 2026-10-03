@@ -37,6 +37,10 @@ class _Auth implements IAuthRepository {
   @override
   Future<Either<AuthFailure, Unit>> sendPasswordResetEmail(String e) async =>
       right(unit);
+
+  @override
+  Future<Either<AuthFailure, AppUser>> updateDisplayName(String n) async =>
+      right(AppUser(id: 'u1', email: 'a@b.co', displayName: n));
 }
 
 const _user = AppUser(id: 'u1', email: 'sara@nu.edu.pk', displayName: 'Sara Khan');

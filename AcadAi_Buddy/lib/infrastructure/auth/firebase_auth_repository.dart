@@ -108,6 +108,27 @@ class FirebaseAuthRepository implements IAuthRepository {
       .map((u) => u == null ? null : UserDto.fromFirebase(u).toDomain());
 
   @override
+  Future<Either<AuthFailure, AppUser>> updateDisplayName(
+      String displayName) async {
+    final user = _firebaseAuth.currentUser;
+    if (user == null) return left(AuthFailure.serverError());
+    try {
+      await user.updateDisplayName(displayName);
+    } on FirebaseAuthException catch (e) {
+      return left(AuthFailure.fromCode(e.code));
+    } catch (_) {
+      return left(AuthFailure.serverError());
+    }
+    final dto = UserDto(
+      id: user.uid,
+      email: user.email ?? '',
+      displayName: displayName,
+    );
+    unawaited(_writeProfile(dto));
+    return right(dto.toDomain());
+  }
+
+  @override
   Future<Either<AuthFailure, Unit>> sendPasswordResetEmail(String email) async {
     try {
       await _firebaseAuth.sendPasswordResetEmail(email: email);

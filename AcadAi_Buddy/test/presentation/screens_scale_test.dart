@@ -21,6 +21,7 @@ import 'package:study_ai_app/domain/study/repositories/i_quiz_result_repository.
 import 'package:study_ai_app/infrastructure/study/firebase_chat_repository.dart';
 import 'package:study_ai_app/infrastructure/study/firebase_quiz_result_repository.dart';
 import 'package:study_ai_app/presentation/core/theme.dart';
+import 'package:study_ai_app/presentation/pages/profile/profile_page.dart';
 import 'package:study_ai_app/presentation/pages/sign_up/sign_up_page.dart';
 import 'package:study_ai_app/presentation/pages/study/chat/chat_page.dart';
 import 'package:study_ai_app/application/quiz/quiz_state.dart';
@@ -45,6 +46,10 @@ class _Auth implements IAuthRepository {
   @override
   Future<Either<AuthFailure, Unit>> sendPasswordResetEmail(String e) async =>
       right(unit);
+
+  @override
+  Future<Either<AuthFailure, AppUser>> updateDisplayName(String n) async =>
+      right(AppUser(id: 'u1', email: 'a@b.co', displayName: n));
 }
 
 final _now = DateTime.now();
@@ -159,6 +164,7 @@ void main() {
     'quiz setup': const QuizSetupPage(),
     'summarize': const SummarizePage(),
     'chat': const ChatPage(chatId: 'c1'),
+    'profile': const ProfilePage(),
     'quiz question': const QuizPlayPage(
         config: QuizConfig(subject: 'Data Structures & Algorithms', count: 5)),
   };

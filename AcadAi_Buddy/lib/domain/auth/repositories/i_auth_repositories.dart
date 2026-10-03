@@ -45,4 +45,8 @@ abstract class IAuthRepository {
 
   /// Sends a password-reset email to [email].
   Future<Either<AuthFailure, Unit>> sendPasswordResetEmail(String email);
+
+  /// Changes the signed-in user's display name (auth profile and the
+  /// `users/{uid}` document).
+  Future<Either<AuthFailure, AppUser>> updateDisplayName(String displayName);
 }
