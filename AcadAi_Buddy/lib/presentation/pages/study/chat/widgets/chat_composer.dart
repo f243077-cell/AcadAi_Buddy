@@ -160,7 +160,16 @@ class _ChatComposerState extends State<ChatComposer> {
                       textInputAction: TextInputAction.newline,
                       textCapitalization: TextCapitalization.sentences,
                       style: AppText.bodyL,
-                      decoration: InputDecoration.collapsed(
+                      // The pill draws the border; override the global
+                      // input theme so no second box appears inside it.
+                      decoration: InputDecoration(
+                        isCollapsed: true,
+                        filled: false,
+                        border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        disabledBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
                         hintText: 'Ask about ${widget.subject}…',
                         hintStyle:
                             AppText.bodyL.copyWith(color: AppColors.textMuted),
